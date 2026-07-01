@@ -132,5 +132,68 @@ class Cliente(EntidadSistema):
             f"Reservas: {len(self.__reservas)}"
         )
 
+# CLASE: Servicio
+# Define la estructura base para todos los tipos de servicios que brinda la empresa FJ.
+class Servicio(EntidadSistema):
+    """ Clase abstracta que representa un servicio genérico de Software FJ. """
+
+    def __init__(self, id_servicio: str, nombre: str, precio_hora: float):
+        # Llamamos al constructor de EntidadSistema
+        super().__init__(id_servicio)
+
+        # Validamos y guardamos los datos
+        self.__nombre = self.__validar_nombre(nombre)
+        self.__precio_hora = self.__validar_precio(precio_hora)
+
+        # Indica si el servicio está disponible para reservar
+        self.__disponible = True
+
+    # VALIDACIONES INTERNAS PARA LA CLASE SERVICIO 
+    def __validar_nombre(self, nombre: str) -> str:
+        """El nombre del servicio no puede estar vacío."""
+        nombre = nombre.strip()
+        if not nombre:
+            raise ValueError("El nombre del servicio no puede estar vacío.")
+        return nombre
+
+    def __validar_precio(self, precio: float) -> float:
+        """El precio por hora debe ser un valor positivo."""
+        if precio <= 0:
+            raise ValueError("El precio por hora debe ser mayor a 0.")
+        return precio
+
+    @abstractmethod
+    def obtener_tipo(self) -> str:
+        """Retorna el tipo de servicio (sala, equipo, asesoría)."""
+        pass
+
+    def get_nombre(self) -> str:
+        return self.__nombre
+
+    def get_precio_hora(self) -> float:
+        return self.__precio_hora
+
+    def esta_disponible(self) -> bool:
+        """Retorna True si el servicio está disponible."""
+        return self.__disponible
+
+    def set_disponible(self, estado: bool):
+        """Cambia la disponibilidad del servicio."""
+        self.__disponible = estado
+
+    def set_precio_hora(self, nuevo_precio: float):
+        """Actualiza el precio por hora con validación."""
+        self.__precio_hora = self.__validar_precio(nuevo_precio)
+
+    def obtener_resumen(self) -> str:
+        """Resumen general de cualquier servicio."""
+        estado = "Disponible" if self.__disponible else "No disponible"
+        return (
+            f"SERVICIO: {self.obtener_tipo()} ID: {self.get_id()}-"
+            f"Nombre: {self.__nombre} -"
+            f"Precio/hora: ${self.__precio_hora:.2f} -"
+            f"Estado: {estado}"
+        )
+
 
 
