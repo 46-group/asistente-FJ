@@ -45,4 +45,92 @@ class EntidadSistema(ABC):
         """Permite imprimir el objeto directamente con print()."""
         return self.obtener_resumen()
 
+# CLASE: Cliente
+# clase hereda de "EntidadSistema" y que Gestiona datos personales con encapsulamiento.
+class Cliente(EntidadSistema):
+    """ Representa a un cliente de la empresa FJ y Encapsula: nombre, correo, teléfono y lista de reservas del cliente.  """
+
+    def __init__(self, id_cliente: str, nombre: str, correo: str, telefono: str):
+        # Llamamos al constructor de la clase padre (EntidadSistema)
+        super().__init__(id_cliente)
+
+        # Validamos y guardamos los datos con doble guión bajo (privados)
+        self.__nombre = self.__validar_nombre(nombre)
+        self.__correo = self.__validar_correo(correo)
+        self.__telefono = self.__validar_telefono(telefono)
+
+        # Lista donde guardaremos los IDs de reservas que tiene este cliente
+        self.__reservas = []
+
+    # VALIDACIONES INTERNAS PARA LA CLASE CLIENTE:
+    # validaciones para nombre, correo y teléfono, que lanzan ValueError si algo no es válido
+    def __validar_nombre(self, nombre: str) -> str:
+        """Verifica que el nombre no esté vacío y solo contenga letras y espacios."""
+        nombre = nombre.strip()  # elimina espacios al inicio y al final del nombre del cliente
+        if not nombre:
+            raise ValueError("El nombre del cliente no puede estar vacío.")
+        if not all(c.isalpha() or c.isspace() for c in nombre):
+            raise ValueError("El nombre solo puede contener letras y espacios.")
+        return nombre
+
+    def __validar_correo(self, correo: str) -> str:
+        """Verifica que el correo tenga formato básico con '@' y '.'"""
+        correo = correo.strip()
+        if "@" not in correo or "." not in correo:
+            raise ValueError(f"El correo '{correo}' no tiene un formato válido.")
+        return correo
+
+    def __validar_telefono(self, telefono: str) -> str:
+        """Verifica que el teléfono tenga entre 7 y 15 dígitos numéricos."""
+        telefono = telefono.strip().replace(" ", "")  # Eliminamos espacios
+        if not telefono.isdigit():
+            raise ValueError("El teléfono solo puede contener dígitos.")
+        if not (7 <= len(telefono) <= 15):
+            raise ValueError("El teléfono debe tener entre 7 y 15 dígitos.")
+        return telefono
+
+    # GETTERS: para leer los datos privados desde afuera de la clase
+    def get_nombre(self) -> str:
+        """Retorna el nombre del cliente."""
+        return self.__nombre
+
+    def get_correo(self) -> str:
+        """Retorna el correo del cliente."""
+        return self.__correo
+
+    def get_telefono(self) -> str:
+        """Retorna el teléfono del cliente."""
+        return self.__telefono
+
+    def get_reservas(self) -> list:
+        """Retorna una copia de la lista de reservas."""
+        return list(self.__reservas)
+
+    # SETTERS: que permiten modificar datos con validación
+    def set_correo(self, nuevo_correo: str):
+        """Permite actualizar el correo con validación."""
+        self.__correo = self.__validar_correo(nuevo_correo)
+
+    def set_telefono(self, nuevo_telefono: str):
+        """Permite actualizar el teléfono con validación."""
+        self.__telefono = self.__validar_telefono(nuevo_telefono)
+
+    # MÉTODO PARA AGREGAR RESERVAS:
+    def agregar_reserva(self, id_reserva: str):
+        """Vincula una reserva a este cliente guardando su ID."""
+        if id_reserva not in self.__reservas:  # previene duplicados
+            self.__reservas.append(id_reserva)
+
+    # IMPLEMENTACIÓN DEL MÉTODO ABSTRACTO 
+    def obtener_resumen(self) -> str:
+        """Retorna un resumen legible de la información del cliente."""
+        return (
+            f"[CLIENTE] ID: {self.get_id()} | "
+            f"Nombre: {self.__nombre} | "
+            f"Correo: {self.__correo} | "
+            f"Teléfono: {self.__telefono} | "
+            f"Reservas: {len(self.__reservas)}"
+        )
+
+
 
