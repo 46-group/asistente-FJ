@@ -195,5 +195,87 @@ class Servicio(EntidadSistema):
             f"Estado: {estado}"
         )
 
+# CLASE: ReservaSala (hereda de Servicio)
+# Representa el servicio de reserva de salas de reunión o trabajo.
+class ReservaSala(Servicio):
+    """Servicio de reserva de salas con información de capacidad y equipamiento."""
+    def __init__(self, id_servicio: str, nombre: str, precio_hora: float, capacidad: int, tiene_proyector: bool = False):
+
+        # Llamamos al constructor de Servicio
+        super().__init__(id_servicio, nombre, precio_hora)
+        self.__capacidad = capacidad        
+        self.__tiene_proyector = tiene_proyector  
+
+    def get_capacidad(self) -> int:
+        return self.__capacidad
+
+    def tiene_proyector(self) -> bool:
+        return self.__tiene_proyector
+
+    def obtener_tipo(self) -> str:
+        """Retorna la categoría de este servicio."""
+        return "Sala de Reuniones"
+
+    def obtener_resumen(self) -> str:
+        """Extiende el resumen base con datos propios de la sala."""
+        proyector = "Sí" if self.__tiene_proyector else "No"
+        return (
+            super().obtener_resumen() + f" Capacidad: {self.__capacidad} personas -Proyector: {proyector}"
+        )
+
+# CLASE: AlquilerEquipo (hereda de Servicio)
+# Representa el servicio de alquiler de equipos tecnológicos.
+class AlquilerEquipo(Servicio):
+    """Servicio de alquiler de equipos con información del tipo de equipo y marca."""
+
+    def __init__(self, id_servicio: str, nombre: str, precio_hora: float,
+                 tipo_equipo: str, marca: str):
+        super().__init__(id_servicio, nombre, precio_hora)
+
+        # Datos específicos del equipo 
+        self.__tipo_equipo = tipo_equipo  # Ej: "Laptop", "Cámara", "Proyector"
+        self.__marca = marca              # Marca del equipo que sera alquilado
+
+    def get_tipo_equipo(self) -> str:
+        return self.__tipo_equipo
+
+    def get_marca(self) -> str:
+        return self.__marca
+
+    def obtener_tipo(self) -> str:
+        return "Alquiler de Equipo"
+
+    def obtener_resumen(self) -> str:
+        return (
+            super().obtener_resumen() + f" - Equipo: {self.__tipo_equipo} - Marca: {self.__marca}"
+        )
+
+# CLASE: AsesoriaEspecializada (hereda de Servicio)
+# Representa el servicio de asesoría con un especialista.
+class AsesoriaEspecializada(Servicio):
+    """Servicio de asesoría con nombre del asesor y área de especialidad."""
+
+    def __init__(self, id_servicio: str, nombre: str, precio_hora: float, especialidad: str, nombre_asesor: str):
+        super().__init__(id_servicio, nombre, precio_hora)
+
+        # Datos específicos de la asesoría 
+        self.__especialidad = especialidad      # Ej: "Redes", "Programación"
+        self.__nombre_asesor = nombre_asesor    # Nombre del profesional
+
+    def get_especialidad(self) -> str:
+        return self.__especialidad
+
+    def get_nombre_asesor(self) -> str:
+        return self.__nombre_asesor
+
+    def obtener_tipo(self) -> str:
+        return "Asesoría Especializada"
+
+    def obtener_resumen(self) -> str:
+        return (
+            super().obtener_resumen() + f" - Especialidad: {self.__especialidad} - Asesor: {self.__nombre_asesor}"
+        )
+
+
 
 
