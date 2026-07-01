@@ -276,6 +276,86 @@ class AsesoriaEspecializada(Servicio):
             super().obtener_resumen() + f" - Especialidad: {self.__especialidad} - Asesor: {self.__nombre_asesor}"
         )
 
+# CLASE: Reserva
+# Une a un Cliente con un Servicio en un rango de fecha y hora y calcula el costo total según las horas reservadas.
+# También hereda de EntidadSistema para tener ID y fecha de creación.
+class Reserva(EntidadSistema):
+    """
+    Representa una reserva realizada por un cliente para un servicio específico.
+    Calcula automáticamente el costo total según las horas reservadas.
+    """
+
+    # Estados posibles de una reserva
+    ESTADO_PENDIENTE   = "Pendiente"
+    ESTADO_CONFIRMADA  = "Confirmada"
+    ESTADO_CANCELADA   = "Cancelada"
+
+    def __init__(self, id_reserva: str, cliente: Cliente, servicio: Servicio, horas: float):
+        super().__init__(id_reserva)
+
+        # Validamos que el servicio esté disponible antes de reservar
+        if not servicio.esta_disponible():
+            raise ValueError( f"El servicio '{servicio.get_nombre()}' no está disponible.")     
+
+        # Validamos que las horas sean un número positivo
+        if horas <= 0:
+            raise ValueError("Las horas de reserva deben ser mayores a 0.")
+
+        # Guardamos referencias al cliente y al servicio (objetos)
+        self.__cliente  = cliente
+        self.__servicio = servicio
+        self.__horas    = horas
+
+        # Calculamos el costo total automáticamente
+        self.__costo_total = horas * servicio.get_precio_hora()
+
+        # El estado inicial siempre es "Pendiente"
+        self.__estado = Reserva.ESTADO_PENDIENTE
+
+        # Guardamos la fecha en que se hizo la reserva
+        self.__fecha_reserva = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    def get_cliente(self) -> Cliente:
+        return self.__cliente
+
+    def get_servicio(self) -> Servicio:
+        return self.__servicio
+
+    def get_horas(self) -> float:
+        return self.__horas
+
+    def get_costo_total(self) -> float:
+        return self.__costo_total
+
+    def get_estado(self) -> str:
+        return self.__estado
+
+    def get_fecha_reserva(self) -> str:
+        return self.__fecha_reserva
+
+    # MÉTODOS PARA EL CAMBIO DE ESTADO:
+    def confirmar(self):
+        """Cambia el estado de la reserva a Confirmada."""
+        if self.__estado == Reserva.ESTADO_CANCELADA:
+            raise ValueError("No se puede confirmar una reserva cancelada.")
+        self.__estado = Reserva.ESTADO_CONFIRMADA
+
+    def cancelar(self):
+        """Cambia el estado de la reserva a Cancelada y libera el servicio."""
+        self.__estado = Reserva.ESTADO_CANCELADA
+
+    def obtener_resumen(self) -> str:
+        """Resumen completo de la reserva."""
+        return (
+            f"RESERVA ID: {self.get_id()} - "
+            f"Cliente: {self.__cliente.get_nombre()} - "
+            f"Servicio: {self.__servicio.get_nombre()} ({self.__servicio.obtener_tipo()}) - "
+            f"Horas: {self.__horas} - "
+            f"Total: ${self.__costo_total:.2f} - "
+            f"Estado: {self.__estado} - "
+            f"Fecha: {self.__fecha_reserva}"
+        )
+
 
 
 
