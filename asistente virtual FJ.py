@@ -357,5 +357,175 @@ class Reserva(EntidadSistema):
         )
 
 
+# CLASE: SistemaFJ
+# Es el "cerebro" del sistema toda vez que gestiona clientes, servicios y reservas.
+# Almacena todo en diccionarios en memoria (sin base de datos).
+class SistemaFJ:
+    """
+    Clase principal que centraliza toda la lógica del sistema.
+    Usando diccionarios para almacenar clientes, servicios y reservas.
+    """
+
+    def __init__(self):
+        # Diccionarios que actúan como "base de datos" en memoria
+        # La clave es el ID y el valor es el objeto correspondiente
+        self.__clientes  = {}   
+        self.__servicios = {}   
+        self.__reservas  = {}  
+
+        # Contador para generar IDs únicos automáticamente
+        self.__contador_reservas = 1
+
+        print("   SISTEMA DE GESTIÓN  FJ   ")
+
+    # SECCIÓN: GESTIÓN DE CLIENTES
+    def registrar_cliente(self, id_cliente: str, nombre: str, correo: str, telefono: str) -> Cliente:
+        """
+        Registra un nuevo cliente en el sistema.
+        Retornanso el objeto Cliente creado.
+        """
+        # Verificamos que el ID no esté duplicado
+        if id_cliente in self.__clientes:
+            raise ValueError(f"Ya existe un cliente con el ID '{id_cliente}'.")
+
+        # Creamos el cliente (la clase Cliente valida los datos internamente)
+        nuevo_cliente = Cliente(id_cliente, nombre, correo, telefono)
+
+        # Lo guardamos en el diccionario
+        self.__clientes[id_cliente] = nuevo_cliente
+
+        print(f"✔ Cliente registrado exitosamente: {nuevo_cliente.get_nombre()}")
+        return nuevo_cliente
+
+    def buscar_cliente(self, id_cliente: str) -> Cliente:
+        """
+        Busca y retorna un cliente por su ID.
+        Lanza error si no lo encuentra.
+        """
+        if id_cliente not in self.__clientes:
+            raise ValueError(f"No se encontró el cliente con ID '{id_cliente}'.")
+        return self.__clientes[id_cliente]
+
+    def listar_clientes(self):
+        """Imprime en pantalla el resumen de todos los clientes registrados."""
+        print("\n CLIENTES REGISTRADOS:")
+        if not self.__clientes:
+            print("  (No hay clientes registrados)")
+            return
+        for cliente in self.__clientes.values():
+            print(" ", cliente.obtener_resumen())
+
+    # SECCIÓN: GESTIÓN DE SERVICIOS
+    def registrar_servicio(self, servicio: Servicio):
+        """ Agrega un servicio ya creado al sistema y acepta cualquier tipo de servicio (sala, equipo, asesoría)."""
+        id_srv = servicio.get_id()
+        if id_srv in self.__servicios:
+            raise ValueError(f"Ya existe un servicio con el ID '{id_srv}'.")
+
+        self.__servicios[id_srv] = servicio
+        print(f"✔ Servicio registrado exitosamente: {servicio.get_nombre()} [{servicio.obtener_tipo()}]")
+
+    def buscar_servicio(self, id_servicio: str) -> Servicio:
+        """Busca y retorna un servicio por su ID."""
+        if id_servicio not in self.__servicios:
+            raise ValueError(f"No se encontró el servicio con ID '{id_servicio}'.")
+        return self.__servicios[id_servicio]
+
+    def listar_servicios(self, solo_disponibles: bool = False):
+        """
+        Imprime todos los servicios.
+        Si 'solo_disponibles' es True, solo muestra los disponibles.
+        """
+        print("\nSERVICIOS:")
+        if not self.__servicios:
+            print("  (No hay servicios registrados)")
+            return
+        for servicio in self.__servicios.values():
+            # Si se pide solo disponibles, filtramos los no disponibles
+            if solo_disponibles and not servicio.esta_disponible():
+                continue
+            print(" ", servicio.obtener_resumen())
+
+    # SECCIÓN: GESTIÓN DE RESERVAS
+    def crear_reserva(self, id_cliente: str, id_servicio: str, horas: float) -> Reserva:
+        """ Crea una reserva vinculando un cliente con un servicio y genera automáticamente el ID de la reserva. """
+        # Buscamos cliente y servicio (lanzan error si no existen)
+        cliente  = self.buscar_cliente(id_cliente)
+        servicio = self.buscar_servicio(id_servicio)
+
+        # Generamos un ID único para la reserva: RES001, RES002, etc.
+        id_reserva = f"RES{self.__contador_reservas:03d}"
+        self.__contador_reservas += 1
+
+        # Creamos la reserva y la clase Reserva valida disponibilidad y horas
+        nueva_reserva = Reserva(id_reserva, cliente, servicio, horas)
+
+        # La guardamos en el diccionario de reservas
+        self.__reservas[id_reserva] = nueva_reserva
+
+        # Vinculamos la reserva al cliente
+        cliente.agregar_reserva(id_reserva)
+
+        print(f"✔ Reserva creada exitosamente: {id_reserva} - "
+              f"Cliente: {cliente.get_nombre()} - "
+              f"Servicio: {servicio.get_nombre()} - "
+              f"Total: ${nueva_reserva.get_costo_total():.2f}")
+
+        return nueva_reserva
+
+    def confirmar_reserva(self, id_reserva: str):
+        """Cambia el estado de una reserva a Confirmada."""
+        reserva = self.__buscar_reserva(id_reserva)
+        reserva.confirmar()
+        print(f"✔ Reserva {id_reserva} confirmada.")
+
+    def cancelar_reserva(self, id_reserva: str):
+        """Cancela una reserva y vuelve a dejar disponible el servicio."""
+        reserva = self.__buscar_reserva(id_reserva)
+        reserva.cancelar()
+        print(f"✔ Reserva {id_reserva} cancelada.")
+
+    def __buscar_reserva(self, id_reserva: str) -> Reserva:
+        """Método privado para buscar una reserva por ID."""
+        if id_reserva not in self.__reservas:
+            raise ValueError(f"No se encontró la reserva con ID '{id_reserva}'.")
+        return self.__reservas[id_reserva]
+
+    def listar_reservas(self):
+        """Imprime todas las reservas registradas en el sistema."""
+        print("\n RESERVAS REGISTRADAS:")
+        if not self.__reservas:
+            print("No hay reservas registradas")
+            return
+        for reserva in self.__reservas.values():
+            print(" ", reserva.obtener_resumen())
+
+    # SECCIÓN: REPORTE GENERAL
+    def reporte_general(self):
+        """
+        Muestra un resumen estadístico del sistema:
+        total de clientes, servicios y reservas, con ingresos totales.
+        """
+    
+        print(" REPORTE GENERAL de la empresa FJ")
+
+        # Contamos totales
+        total_clientes = len(self.__clientes)
+        total_servicios = len(self.__servicios)
+        total_reservas = len(self.__reservas)
+
+        # Sumamos ingresos de reservas confirmadas
+        ingresos = sum(
+            r.get_costo_total()
+            for r in self.__reservas.values()
+            if r.get_estado() == Reserva.ESTADO_CONFIRMADA
+        )
+
+        print(f"  Clientes registrados : {total_clientes}")
+        print(f"  Servicios disponibles: {total_servicios}")
+        print(f"  Reservas totales     : {total_reservas}")
+        print(f"  Ingresos confirmados : ${ingresos:.2f}")
+
+
 
 
