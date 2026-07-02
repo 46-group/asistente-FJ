@@ -526,6 +526,227 @@ class SistemaFJ:
         print(f"  Reservas totales     : {total_reservas}")
         print(f"  Ingresos confirmados : ${ingresos:.2f}")
 
+# FUNCIONES DEL MENÚ INTERACTIVO
+# Cada función le pide al usuario los datos por teclado y llama al sistema.
+
+def menu_registrar_cliente(sistema: SistemaFJ):
+    """Le pide al usuario los datos de un cliente y lo registra en el sistema."""
+    print("\n REGISTRAR CLIENTE:")
+    id_c     = input("  ID del cliente (ej: C001)  : ").strip()
+    nombre   = input("  Nombre completo            : ").strip()
+    correo   = input("  Correo electrónico         : ").strip()
+    telefono = input("  Teléfono (solo dígitos)    : ").strip()
+    try:
+        sistema.registrar_cliente(id_c, nombre, correo, telefono)
+    except ValueError as e:
+        # ValueError lo lanzamos cuando un dato es inválido
+        print(f"  ❌ Error: {e}")
+
+def menu_registrar_servicio(sistema: SistemaFJ):
+    """
+    Le pregunta al usuario qué tipo de servicio quiere registrar y solicita los datos correspondientes.
+    """
+    print("\n REGISTRAR SERVICIO:")
+    print("  servicios disponibles:")
+    print("    1. Sala de Reuniones")
+    print("    2. Alquiler de Equipo")
+    print("    3. Asesoría Especializada")
+
+    tipo = input("  Elige el tipo de servicioque desea adquirir:(1/2/3): ").strip()
+
+    # Datos comunes a todos los tipos de servicio
+    id_s       = input("  ID del servicio (ej: S001) : ").strip()
+    nombre     = input("  Nombre del servicio        : ").strip()
+
+    try:
+        # Convertimos el precio a número flotante; si falla lanzamos error
+        precio = float(input("  Precio por hora ($)        : ").strip())
+    except ValueError:
+        print("  ❌ Error: El precio debe ser solo números (ej: 50000).")
+        return
+
+    try:
+        # Según el tipo elegido pedimos datos adicionales y creamos el objeto
+        if tipo == "1":
+            #  Sala de Reuniones 
+            capacidad_str = input("  Capacidad (número de personas): ").strip()
+            if not capacidad_str.isdigit():
+                print("  ❌ Error: La capacidad debe ser un número entero.")
+                return
+            capacidad  = int(capacidad_str)
+            proyector  = input("  ¿Tiene proyector? (s/n)       : ").strip().lower()
+            tiene_proy = proyector == "s"   # True si escribió 's', False si no
+            servicio   = ReservaSala(id_s, nombre, precio, capacidad, tiene_proy)
+
+        elif tipo == "2":
+            #  Alquiler de Equipo
+            tipo_eq  = input("  Tipo de equipo (ej: Laptop)   : ").strip()
+            marca    = input("  Marca del equipo              : ").strip()
+            servicio = AlquilerEquipo(id_s, nombre, precio, tipo_eq, marca)
+
+        elif tipo == "3":
+            #  Asesoría Especializada 
+            especialidad = input("  Especialidad (ej: Redes)      : ").strip()
+            asesor       = input("  Nombre del asesor             : ").strip()
+            servicio     = AsesoriaEspecializada(id_s, nombre, precio, especialidad, asesor)
+
+        else:
+            print("  ❌ Opción inválida.  Elige el tipo de servicioque desea adquirir:(1/2/3)")
+            return
+
+        # Registramos el servicio ya construido en el sistema
+        sistema.registrar_servicio(servicio)
+
+    except ValueError as e:
+        print(f"  ❌ Error: {e}")
+
+def menu_crear_reserva(sistema: SistemaFJ):
+    """Le pide al usuario IDs de cliente y servicio, y las horas a reservar."""
+    print("\n CREAR RESERVA: ")
+
+    # Mostramos los disponibles para que el usuario sepa qué IDs usar
+    sistema.listar_clientes()
+    sistema.listar_servicios(solo_disponibles=True)
+
+    id_cliente  = input("\n  ID del cliente  : ").strip()
+    id_servicio = input("  ID del servicio : ").strip()
+
+    try:
+        horas = float(input("  Número de horas : ").strip())
+    except ValueError:
+        print("  ❌ Error: Las horas deben ser un número (ej: 2 o 1.5).")
+        return
+
+    try:
+        sistema.crear_reserva(id_cliente, id_servicio, horas)
+    except ValueError as e:
+        print(f"  ❌ Error: {e}")
+
+def menu_confirmar_reserva(sistema: SistemaFJ):
+    """Le pide el ID de una reserva y la confirma."""
+    print("\n CONFIRMAR RESERVA: ")
+    sistema.listar_reservas()
+    id_res = input("\n  ID de la reserva a confirmar: ").strip()
+    try:
+        sistema.confirmar_reserva(id_res)
+    except ValueError as e:
+        print(f"  ❌ Error: {e}")
+
+def menu_cancelar_reserva(sistema: SistemaFJ):
+    """Le pide el ID de una reserva y la cancela."""
+    print("\nCANCELAR RESERVA:")
+    sistema.listar_reservas()
+    id_res = input("\n  ID de la reserva a cancelar: ").strip()
+    try:
+        sistema.cancelar_reserva(id_res)
+    except ValueError as e:
+        print(f"  ❌ Error: {e}")
+
+def menu_actualizar_cliente(sistema: SistemaFJ):
+    """Permite actualizar el correo o el teléfono de un cliente existente."""
+    print("\n ACTUALIZACION DE DATOS DE CLIENTE:")
+    sistema.listar_clientes()
+    id_c = input("\n  ID del cliente a actualizar: ").strip()
+    try:
+        cliente = sistema.buscar_cliente(id_c)
+    except ValueError as e:
+        print(f"  ❌ Error: {e}")
+        return
+
+    print(f"  Cliente encontrado: {cliente.obtener_resumen()}")
+    print("  ¿Qué deseas actualizar?")
+    print("    1. Correo electrónico")
+    print("    2. Teléfono")
+    opcion = input("  Elige (1/2): ").strip()
+
+    try:
+        if opcion == "1":
+            nuevo = input("  Nuevo correo: ").strip()
+            cliente.set_correo(nuevo)
+            print("  ✔ Correo actualizado correctamente.")
+        elif opcion == "2":
+            nuevo = input("  Nuevo teléfono: ").strip()
+            cliente.set_telefono(nuevo)
+            print("  ✔ Teléfono actualizado correctamente.")
+        else:
+            print("  ❌ Opción inválida.")
+    except ValueError as e:
+        print(f"  ❌ Error: {e}")
+
+# BLOQUE PRINCIPAL: Menú interactivo en consola
+# El programa queda en un ciclo hasta que el usuario elija "Salir".
+if __name__ == "__main__":
+    # Creamos la instancia del sistema  
+    sistema = SistemaFJ()
+
+    # Opciones del menú principal
+    opciones = {
+        "1": "Registrar cliente",
+        "2": "Registrar servicio",
+        "3": "Crear reserva",
+        "4": "Confirmar reserva",
+        "5": "Cancelar reserva",
+        "6": "Actualizar datos de cliente",
+        "7": "Ver todos los clientes",
+        "8": "Ver todos los servicios",
+        "9": "Ver todas las reservas",
+        "10": "Reporte general",
+        "0": "Salir",
+    }
+
+    # Ciclo principal: el menú se repite hasta que el usuario elija 0
+    while True:
+        print("\n" + "=" * 50)
+        print("       MENÚ PRINCIPAL DEL SISTEMA DE GESTIÓN FJ      ") 
+        print("=" * 50)
+
+        # Mostramos cada opción numerada
+        for clave, descripcion in opciones.items():
+            print(f"  [{clave}] {descripcion}")
+
+        eleccion = input("  Elige una opción: ").strip()
+
+        # Ejecutamos la función correspondiente según la elección
+        if eleccion == "1":
+            menu_registrar_cliente(sistema)
+
+        elif eleccion == "2":
+            menu_registrar_servicio(sistema)
+
+        elif eleccion == "3":
+            menu_crear_reserva(sistema)
+
+        elif eleccion == "4":
+            menu_confirmar_reserva(sistema)
+
+        elif eleccion == "5":
+            menu_cancelar_reserva(sistema)
+
+        elif eleccion == "6":
+            menu_actualizar_cliente(sistema)
+
+        elif eleccion == "7":
+            sistema.listar_clientes()
+
+        elif eleccion == "8":
+            sistema.listar_servicios()
+
+        elif eleccion == "9":
+            sistema.listar_reservas()
+
+        elif eleccion == "10":
+            sistema.reporte_general()
+
+        elif eleccion == "0":
+            # El usuario quiere salir
+            print("\n  ✔ Hasta luego. Sistema de Gestion FJ cerrado.\n")
+            break   # Rompemos el ciclo while y termina el programa
+
+        else:
+            # Si escribió algo que no es una opción válida
+            print("  ❌ Opción no válida. Por favor elige un número del menú.")
+
+
 
 
 
