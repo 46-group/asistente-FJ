@@ -276,6 +276,24 @@ class ReservaSala(Servicio):
         super().__init__(id_servicio, nombre, precio_hora)
         self.__capacidad = capacidad        
         self.__tiene_proyector = tiene_proyector  
+        self.validar_parametros()
+        
+    def validar_parametros(self) -> bool:
+        if self.__capacidad is None or self.__capacidad <= 0:
+            raise DatosFaltantesException("La capacidad debe ser mayor a 0.")
+        return True
+
+    def describir(self) -> str:
+        proyector = "con proyector" if self.__tiene_proyector else "sin proyector"
+        return f"Sala para {self.__capacidad} personas, {proyector}."
+
+    def calcular_costo(self, horas: float, impuesto: float = 0.0, descuento: float = 0.0) -> float:
+        if horas <= 0:
+            raise DuracionInvalidaException("Las horas deben ser mayores a 0.")
+        costo = horas * self.get_precio_hora()
+        if self.__tiene_proyector:
+            costo += costo * 0.05  # recargo del 5% por proyector
+        return self._aplicar_impuesto_y_descuento(costo, impuesto, descuento)
 
     def get_capacidad(self) -> int:
         return self.__capacidad
@@ -306,6 +324,21 @@ class AlquilerEquipo(Servicio):
         # Datos específicos del equipo 
         self.__tipo_equipo = tipo_equipo  # Ej: "Laptop", "Cámara", "Proyector"
         self.__marca = marca              # Marca del equipo que sera alquilado
+        self.validar_parametros()
+
+    def validar_parametros(self) -> bool:
+        if not self.__tipo_equipo.strip() or not self.__marca.strip():
+            raise DatosFaltantesException("Tipo de equipo y marca son obligatorios.")
+        return True
+
+    def describir(self) -> str:
+        return f"Equipo tipo {self.__tipo_equipo}, marca {self.__marca}."
+
+    def calcular_costo(self, horas: float, impuesto: float = 0.0, descuento: float = 0.0) -> float:
+        if horas <= 0:
+            raise DuracionInvalidaException("Las horas deben ser mayores a 0.")
+        costo = horas * self.get_precio_hora() + 5000  # cargo fijo de seguro
+        return self._aplicar_impuesto_y_descuento(costo, impuesto, descuento)
 
     def get_tipo_equipo(self) -> str:
         return self.__tipo_equipo
@@ -332,6 +365,22 @@ class AsesoriaEspecializada(Servicio):
         # Datos específicos de la asesoría 
         self.__especialidad = especialidad      # Ej: "Redes", "Programación"
         self.__nombre_asesor = nombre_asesor    # Nombre del profesional
+        self.validar_parametros()
+
+    def validar_parametros(self) -> bool:
+        if not self.__especialidad.strip() or not self.__nombre_asesor.strip():
+            raise DatosFaltantesException("Especialidad y asesor son obligatorios.")
+        return True
+
+    def describir(self) -> str:
+        return f"Asesoría en {self.__especialidad}, con {self.__nombre_asesor}."
+
+    def calcular_costo(self, horas: float, impuesto: float = 0.0, descuento: float = 0.0) -> float:
+        if horas <= 0:
+            raise DuracionInvalidaException("Las horas deben ser mayores a 0.")
+        horas_cobradas = max(horas, 1)  # tarifa mínima de 1 hora
+        costo = horas_cobradas * self.get_precio_hora()
+        return self._aplicar_impuesto_y_descuento(costo, impuesto, descuento)
 
     def get_especialidad(self) -> str:
         return self.__especialidad
