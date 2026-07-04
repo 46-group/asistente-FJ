@@ -11,6 +11,51 @@ from abc import ABC, abstractmethod
 
 # Importamos 'datetime' para manejar fechas y horas
 from datetime import datetime
+import logging
+import os
+
+# SISTEMA DE LOGS (registro de eventos y errores)
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(
+    filename="logs/eventos.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def registrar_evento(mensaje: str):
+    logging.info(mensaje)
+
+def registrar_error(mensaje: str, excepcion: Exception = None):
+    if excepcion is not None:
+        logging.error(f"{mensaje} | Tipo: {type(excepcion).__name__} | Detalle: {excepcion}")
+    else:
+        logging.error(mensaje)
+
+# --- EXCEPCIONES PERSONALIZADAS ---
+class ErrorSistemaFJ(Exception):
+    """Excepción base del sistema."""
+    pass
+
+class ClienteInvalidoException(ErrorSistemaFJ):
+    pass
+
+class ServicioInvalidoException(ErrorSistemaFJ):
+    pass
+
+class ServicioNoDisponibleException(ErrorSistemaFJ):
+    pass
+
+class DuracionInvalidaException(ErrorSistemaFJ):
+    pass
+
+class DatosFaltantesException(ErrorSistemaFJ):
+    pass
+
+class ReservaException(ErrorSistemaFJ):
+    pass
+
+class OperacionNoPermitidaException(ErrorSistemaFJ):
+    pass
 
 
 # CLASE ABSTRACTA BASE: EntidadSistema
@@ -32,7 +77,7 @@ class EntidadSistema(ABC):
         """Retorna un resumen de la entidad y Cada clase lo implementa a su manera."""
         pass
 
-    # GETTERS: contiene losmétodos para leer atributos privados
+    # GETTERS: contiene los métodos para leer atributos privados
     def get_id(self) -> str:
         """Retorna el ID único de la entidad."""
         return self.__id_entidad
