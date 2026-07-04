@@ -525,23 +525,21 @@ class SistemaFJ:
         print("   SISTEMA DE GESTIÓN  FJ   ")
 
     # SECCIÓN: GESTIÓN DE CLIENTES
-    def registrar_cliente(self, id_cliente: str, nombre: str, correo: str, telefono: str) -> Cliente:
-        """
-        Registra un nuevo cliente en el sistema.
-        Retornanso el objeto Cliente creado.
-        """
-        # Verificamos que el ID no esté duplicado
-        if id_cliente in self.__clientes:
-            raise ValueError(f"Ya existe un cliente con el ID '{id_cliente}'.")
-
-        # Creamos el cliente (la clase Cliente valida los datos internamente)
-        nuevo_cliente = Cliente(id_cliente, nombre, correo, telefono)
-
-        # Lo guardamos en el diccionario
-        self.__clientes[id_cliente] = nuevo_cliente
-
-        print(f"✔ Cliente registrado exitosamente: {nuevo_cliente.get_nombre()}")
-        return nuevo_cliente
+    def registrar_cliente(self, id_cliente: str, nombre: str, correo: str, telefono: str):
+        cliente_creado = None
+        try:
+            if id_cliente in self.__clientes:
+                raise ClienteInvalidoException(f"Ya existe un cliente con el ID '{id_cliente}'.")
+            cliente_creado = Cliente(id_cliente, nombre, correo, telefono)
+        except (ClienteInvalidoException, DatosFaltantesException) as e:
+            registrar_error("Error al registrar cliente", e)
+            print(f"  ❌ Error: {e}")
+        else:
+            self.__clientes[id_cliente] = cliente_creado
+            print(f"✔ Cliente registrado exitosamente: {cliente_creado.get_nombre()}")
+        finally:
+            registrar_evento(f"Intento de registro de cliente procesado (ID: {id_cliente}).")
+        return cliente_creado
 
     def buscar_cliente(self, id_cliente: str) -> Cliente:
         """
@@ -563,13 +561,18 @@ class SistemaFJ:
 
     # SECCIÓN: GESTIÓN DE SERVICIOS
     def registrar_servicio(self, servicio: Servicio):
-        """ Agrega un servicio ya creado al sistema y acepta cualquier tipo de servicio (sala, equipo, asesoría)."""
-        id_srv = servicio.get_id()
-        if id_srv in self.__servicios:
-            raise ValueError(f"Ya existe un servicio con el ID '{id_srv}'.")
-
-        self.__servicios[id_srv] = servicio
-        print(f"✔ Servicio registrado exitosamente: {servicio.get_nombre()} [{servicio.obtener_tipo()}]")
+        try:
+            id_srv = servicio.get_id()
+            if id_srv in self.__servicios:
+                raise ServicioInvalidoException(f"Ya existe un servicio con el ID '{id_srv}'.")
+        except ServicioInvalidoException as e:
+            registrar_error("Error al registrar servicio", e)
+            print(f"  ❌ Error: {e}")
+        else:
+            self.__servicios[servicio.get_id()] = servicio
+            print(f"✔ Servicio registrado exitosamente: {servicio.get_nombre()} [{servicio.obtener_tipo()}]")
+        finally:
+            registrar_evento(f"Intento de registro de servicio procesado (ID: {servicio.get_id()}).")
 
     def buscar_servicio(self, id_servicio: str) -> Servicio:
         """Busca y retorna un servicio por su ID."""
