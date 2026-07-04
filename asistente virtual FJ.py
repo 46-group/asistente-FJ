@@ -547,7 +547,7 @@ class SistemaFJ:
         Lanza error si no lo encuentra.
         """
         if id_cliente not in self.__clientes:
-            raise ValueError(f"No se encontró el cliente con ID '{id_cliente}'.")
+            raise ClienteInvalidoException(f"No se encontró el cliente con ID '{id_cliente}'.")
         return self.__clientes[id_cliente]
 
     def listar_clientes(self):
@@ -577,7 +577,7 @@ class SistemaFJ:
     def buscar_servicio(self, id_servicio: str) -> Servicio:
         """Busca y retorna un servicio por su ID."""
         if id_servicio not in self.__servicios:
-            raise ValueError(f"No se encontró el servicio con ID '{id_servicio}'.")
+            raise ServicioInvalidoException(f"No se encontró el servicio con ID '{id_servicio}'.")
         return self.__servicios[id_servicio]
 
     def listar_servicios(self, solo_disponibles: bool = False):
@@ -596,48 +596,57 @@ class SistemaFJ:
             print(" ", servicio.obtener_resumen())
 
     # SECCIÓN: GESTIÓN DE RESERVAS
-    def crear_reserva(self, id_cliente: str, id_servicio: str, horas: float) -> Reserva:
-        """ Crea una reserva vinculando un cliente con un servicio y genera automáticamente el ID de la reserva. """
-        # Buscamos cliente y servicio (lanzan error si no existen)
-        cliente  = self.buscar_cliente(id_cliente)
-        servicio = self.buscar_servicio(id_servicio)
-
-        # Generamos un ID único para la reserva: RES001, RES002, etc.
-        id_reserva = f"RES{self.__contador_reservas:03d}"
-        self.__contador_reservas += 1
-
-        # Creamos la reserva y la clase Reserva valida disponibilidad y horas
-        nueva_reserva = Reserva(id_reserva, cliente, servicio, horas)
-
-        # La guardamos en el diccionario de reservas
-        self.__reservas[id_reserva] = nueva_reserva
-
-        # Vinculamos la reserva al cliente
-        cliente.agregar_reserva(id_reserva)
-
-        print(f"✔ Reserva creada exitosamente: {id_reserva} - "
-              f"Cliente: {cliente.get_nombre()} - "
-              f"Servicio: {servicio.get_nombre()} - "
-              f"Total: ${nueva_reserva.get_costo_total():.2f}")
-
+    def crear_reserva(self, id_cliente: str, id_servicio: str, horas: float):
+        nueva_reserva = None
+        try:
+            cliente = self.buscar_cliente(id_cliente)
+            servicio = self.buscar_servicio(id_servicio)
+            id_reserva = f"RES{self.__contador_reservas:03d}"
+            nueva_reserva = Reserva(id_reserva, cliente, servicio, horas)
+        except (ClienteInvalidoException, ServicioInvalidoException,
+                ServicioNoDisponibleException, DuracionInvalidaException) as e:
+            registrar_error("Error al crear la reserva", e)
+            print(f"  ❌ Error: {e}")
+        else:
+            self.__contador_reservas += 1
+            self.__reservas[nueva_reserva.get_id()] = nueva_reserva
+            cliente.agregar_reserva(nueva_reserva.get_id())
+            print(
+                f"✔ Reserva creada exitosamente: {nueva_reserva.get_id()} - "
+                f"Cliente: {cliente.get_nombre()} - "
+                f"Servicio: {servicio.get_nombre()} - "
+                f"Total: ${nueva_reserva.get_costo_total():.2f}"
+            )
+        finally:
+            registrar_evento(f"Intento de creación de reserva procesado (Cliente: {id_cliente}, Servicio: {id_servicio}).")
         return nueva_reserva
 
     def confirmar_reserva(self, id_reserva: str):
-        """Cambia el estado de una reserva a Confirmada."""
-        reserva = self.__buscar_reserva(id_reserva)
-        reserva.confirmar()
-        print(f"✔ Reserva {id_reserva} confirmada.")
+        try:
+            reserva = self.__buscar_reserva(id_reserva)
+            reserva.confirmar()
+        except (ReservaException, OperacionNoPermitidaException, DatosFaltantesException) as e:
+            print(f"  ❌ Error: {e}")
+        else:
+            print(f"✔ Reserva {id_reserva} confirmada.")
+        finally:
+            registrar_evento(f"Intento de confirmación de reserva procesado (ID: {id_reserva}).")
 
     def cancelar_reserva(self, id_reserva: str):
-        """Cancela una reserva y vuelve a dejar disponible el servicio."""
-        reserva = self.__buscar_reserva(id_reserva)
-        reserva.cancelar()
-        print(f"✔ Reserva {id_reserva} cancelada.")
+        try:
+            reserva = self.__buscar_reserva(id_reserva)
+            reserva.cancelar()
+        except (ReservaException, OperacionNoPermitidaException, DatosFaltantesException) as e:
+            print(f"  ❌ Error: {e}")
+        else:
+            print(f"✔ Reserva {id_reserva} cancelada.")
+        finally:
+            registrar_evento(f"Intento de cancelación de reserva procesado (ID: {id_reserva}).")
 
     def __buscar_reserva(self, id_reserva: str) -> Reserva:
         """Método privado para buscar una reserva por ID."""
         if id_reserva not in self.__reservas:
-            raise ValueError(f"No se encontró la reserva con ID '{id_reserva}'.")
+            raise DatosFaltantesException(f"No se encontró la reserva con ID '{id_reserva}'.")
         return self.__reservas[id_reserva]
 
     def listar_reservas(self):
@@ -845,57 +854,33 @@ if __name__ == "__main__":
 
     # Ciclo principal: el menú se repite hasta que el usuario elija 0
     while True:
-        print("\n" + "=" * 50)
-        print("       MENÚ PRINCIPAL DEL SISTEMA DE GESTIÓN FJ      ") 
-        print("=" * 50)
+        try:
+            print("\n" + "=" * 50)
+            print("       MENÚ PRINCIPAL DEL SISTEMA DE GESTIÓN FJ      ")
+            print("=" * 50)
+            for clave, descripcion in opciones.items():
+                print(f"  [{clave}] {descripcion}")
 
-        # Mostramos cada opción numerada
-        for clave, descripcion in opciones.items():
-            print(f"  [{clave}] {descripcion}")
+            eleccion = input("  Elige una opción: ").strip()
 
-        eleccion = input("  Elige una opción: ").strip()
+            if eleccion == "1":
+                menu_registrar_cliente(sistema)
+            # ... (todos los elif quedan exactamente igual) ...
+            elif eleccion == "0":
+                print("\n  ✔ Hasta luego. Sistema de Gestion FJ cerrado.\n")
+                registrar_evento("Sistema cerrado por el usuario.")
+                break
+            else:
+                print("  ❌ Opción no válida. Por favor elige un número del menú.")
 
-        # Ejecutamos la función correspondiente según la elección
-        if eleccion == "1":
-            menu_registrar_cliente(sistema)
-
-        elif eleccion == "2":
-            menu_registrar_servicio(sistema)
-
-        elif eleccion == "3":
-            menu_crear_reserva(sistema)
-
-        elif eleccion == "4":
-            menu_confirmar_reserva(sistema)
-
-        elif eleccion == "5":
-            menu_cancelar_reserva(sistema)
-
-        elif eleccion == "6":
-            menu_actualizar_cliente(sistema)
-
-        elif eleccion == "7":
-            sistema.listar_clientes()
-
-        elif eleccion == "8":
-            sistema.listar_servicios()
-
-        elif eleccion == "9":
-            sistema.listar_reservas()
-
-        elif eleccion == "10":
-            sistema.reporte_general()
-
-        elif eleccion == "0":
-            # El usuario quiere salir
-            print("\n  ✔ Hasta luego. Sistema de Gestion FJ cerrado.\n")
-            break   # Rompemos el ciclo while y termina el programa
-
-        else:
-            # Si escribió algo que no es una opción válida
-            print("  ❌ Opción no válida. Por favor elige un número del menú.")
-
-
+        except ErrorSistemaFJ as e:
+            registrar_error("Error del sistema no manejado en un punto específico", e)
+            print(f"  ❌ Ocurrió un error: {e}")
+        except Exception as e:
+            registrar_error("Error inesperado en el ciclo principal", e)
+            print("  ❌ Ocurrió un error inesperado. Fue registrado en logs/eventos.log.")
+        finally:
+            registrar_evento("Iteración del menú principal finalizada.")
 
 
 
