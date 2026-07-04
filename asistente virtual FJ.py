@@ -100,9 +100,13 @@ class Cliente(EntidadSistema):
         super().__init__(id_cliente)
 
         # Validamos y guardamos los datos con doble guión bajo (privados)
-        self.__nombre = self.__validar_nombre(nombre)
-        self.__correo = self.__validar_correo(correo)
-        self.__telefono = self.__validar_telefono(telefono)
+        try:
+            self.__nombre = self.__validar_nombre(nombre)
+            self.__correo = self.__validar_correo(correo)
+            self.__telefono = self.__validar_telefono(telefono)
+        except ValueError as e:
+            registrar_error(f"No se pudo crear el cliente '{id_cliente}'", e)
+            raise ClienteInvalidoException(f"Datos de cliente inválidos: {e}") from e
 
         # Lista donde guardaremos los IDs de reservas que tiene este cliente
         self.__reservas = []
