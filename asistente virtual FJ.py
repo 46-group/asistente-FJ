@@ -216,6 +216,28 @@ class Servicio(EntidadSistema):
         """Retorna el tipo de servicio (sala, equipo, asesoría)."""
         pass
 
+    @abstractmethod
+    def describir(self) -> str:
+        """Descripción propia de cada tipo de servicio."""
+        pass
+
+    @abstractmethod
+    def validar_parametros(self) -> bool:
+        """Cada subclase valida sus propios datos."""
+        pass
+
+    @abstractmethod
+    def calcular_costo(self, horas: float, impuesto: float = 0.0, descuento: float = 0.0) -> float:
+        """Cada subclase calcula su costo con su propia lógica (esto simula 'sobrecarga' con parámetros opcionales)."""
+        pass
+
+    def _aplicar_impuesto_y_descuento(self, costo_base, impuesto, descuento) -> float:
+        if impuesto < 0 or descuento < 0:
+            raise DatosFaltantesException("Impuesto y descuento no pueden ser negativos.")
+        costo = costo_base - (costo_base * descuento)
+        costo = costo + (costo * impuesto)
+        return round(costo, 2)
+
     def get_nombre(self) -> str:
         return self.__nombre
 
