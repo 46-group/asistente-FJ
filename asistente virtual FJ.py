@@ -413,21 +413,27 @@ class Reserva(EntidadSistema):
     def __init__(self, id_reserva: str, cliente: Cliente, servicio: Servicio, horas: float):
         super().__init__(id_reserva)
 
+       
         # Validamos que el servicio esté disponible antes de reservar
         if not servicio.esta_disponible():
-            raise ValueError( f"El servicio '{servicio.get_nombre()}' no está disponible.")     
+            registrar_error(f"Intento de reservar servicio no disponible: {servicio.get_id()}")
+            raise ServicioNoDisponibleException(f"El servicio '{servicio.get_nombre()}' no está disponible.")
 
         # Validamos que las horas sean un número positivo
         if horas <= 0:
-            raise ValueError("Las horas de reserva deben ser mayores a 0.")
+            raise DuracionInvalidaException("Las horas de reserva deben ser mayores a 0.")
 
         # Guardamos referencias al cliente y al servicio (objetos)
         self.__cliente  = cliente
         self.__servicio = servicio
         self.__horas    = horas
 
-        # Calculamos el costo total automáticamente
-        self.__costo_total = horas * servicio.get_precio_hora()
+        # Cada tipo de servicio calcula su propio costo (polimorfismo real)
+        try:
+            self.__costo_total = servicio.calcular_costo(horas)
+        except ErrorSistemaFJ as e:
+            registrar_error(f"No se pudo calcular el costo de la reserva '{id_reserva}'", e)
+            raise
 
         # El estado inicial siempre es "Pendiente"
         self.__estado = Reserva.ESTADO_PENDIENTE
@@ -456,13 +462,33 @@ class Reserva(EntidadSistema):
     # MÉTODOS PARA EL CAMBIO DE ESTADO:
     def confirmar(self):
         """Cambia el estado de la reserva a Confirmada."""
-        if self.__estado == Reserva.ESTADO_CANCELADA:
-            raise ValueError("No se puede confirmar una reserva cancelada.")
-        self.__estado = Reserva.ESTADO_CONFIRMADA
+        try:
+            if self.__estado == Reserva.ESTADO_CANCELADA:
+                raise ReservaException(f"No se puede confirmar {self.get_id()}: está cancelada.")
+            if self.__estado == Reserva.ESTADO_CONFIRMADA:
+                raise OperacionNoPermitidaException(f"{self.get_id()} ya estaba confirmada.")
+        except (ReservaException, OperacionNoPermitidaException) as e:
+            registrar_error(f"No se pudo confirmar {self.get_id()}", e)
+            raise
+        else:
+            self.__estado = Reserva.ESTADO_CONFIRMADA
+            registrar_evento(f"Reserva {self.get_id()} confirmada.")
+        finally:
+            registrar_evento(f"Intento de confirmación procesado: {self.get_id()}.")
 
     def cancelar(self):
-        """Cambia el estado de la reserva a Cancelada y libera el servicio."""
-        self.__estado = Reserva.ESTADO_CANCELADA
+        """Cambia el estado de la reserva a Cancelada."""
+        try:
+            if self.__estado == Reserva.ESTADO_CANCELADA:
+                raise OperacionNoPermitidaException(f"{self.get_id()} ya estaba cancelada.")
+        except OperacionNoPermitidaException as e:
+            registrar_error(f"No se pudo cancelar {self.get_id()}", e)
+            raise
+        else:
+            self.__estado = Reserva.ESTADO_CANCELADA
+            registrar_evento(f"Reserva {self.get_id()} cancelada.")
+        finally:
+            registrar_evento(f"Intento de cancelación procesado: {self.get_id()}.")
 
     def obtener_resumen(self) -> str:
         """Resumen completo de la reserva."""
